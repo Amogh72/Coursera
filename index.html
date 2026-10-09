@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simple Interest Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a bank-passbook card — inputs on the left page, the ledger result on the right; stacks on phones */
+:root {
+  --bg: #eef2f1;
+  --paper: #fbfcfb;
+  --ink: #17302c;
+  --muted: #5b6f6b;
+  --rule: #d3dedb;
+  --accent: #1f6f5c;
+  --accent-soft: #d6ebe4;
+  --interest: #c27a1a;
+  --font-display: "Young Serif", Georgia, serif;
+  --font-body: "Public Sans", system-ui, sans-serif;
+  --font-num: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1716; --paper: #16211f; --ink: #e3eeeb; --muted: #93a8a3;
+    --rule: #2a3a37; --accent: #5cc3a6; --accent-soft: #1d3a33; --interest: #e9a64b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1716; --paper: #16211f; --ink: #e3eeeb; --muted: #93a8a3;
+  --rule: #2a3a37; --accent: #5cc3a6; --accent-soft: #1d3a33; --interest: #e9a64b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+  padding: 40px 16px;
+}
+.wrap { max-width: 920px; margin: 0 auto; display: grid; gap: 24px; }
+header h1 {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: clamp(1.9rem, 4.5vw, 2.6rem); line-height: 1.1; margin: 0;
+  text-wrap: balance;
+}
+header p { margin: 8px 0 0; color: var(--muted); max-width: 60ch; }
+.formula {
+  display: inline-block; margin-top: 12px; font-family: var(--font-num); font-size: 0.9rem;
+  background: var(--accent-soft); color: var(--accent); padding: 4px 10px; border-radius: 4px;
+}
+.book {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  background: var(--paper); border: 1px solid var(--rule); border-radius: 10px;
+  overflow: hidden;
+}
+@media (max-width: 720px) { .book { grid-template-columns: 1fr; } }
+.inputs { padding: 28px; display: grid; gap: 20px; align-content: start; border-right: 1px solid var(--rule); }
+@media (max-width: 720px) { .inputs { border-right: 0; border-bottom: 1px solid var(--rule); } }
+.label {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted); font-weight: 600;
+}
+.field { display: grid; gap: 6px; }
+.field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.control { display: flex; align-items: stretch; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); }
+.control:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.control .affix { padding: 0 12px; display: flex; align-items: center; color: var(--muted); font-family: var(--font-num); }
+.control input {
+  flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink);
+  font-family: var(--font-num); font-size: 1.1rem; padding: 10px 12px; outline: none;
+  font-variant-numeric: tabular-nums;
+}
+.control input:first-child { padding-left: 12px; }
+.unit { display: flex; border-left: 1px solid var(--rule); }
+.unit button {
+  border: 0; background: transparent; color: var(--muted); font: 600 0.8rem var(--font-body);
+  padding: 0 12px; cursor: pointer;
+}
+.unit button[aria-pressed="true"] { background: var(--accent); color: var(--paper); }
+.unit button:first-child[aria-pressed="true"] { border-radius: 0; }
+.unit button:last-child[aria-pressed="true"] { border-radius: 0 5px 5px 0; }
+.unit button:focus-visible, .samples button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.error { color: #b3261e; font-size: 0.82rem; min-height: 1.2em; }
+:root[data-theme="dark"] .error { color: #f2a59d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .error { color: #f2a59d; } }
+.samples { display: flex; flex-wrap: wrap; gap: 8px; }
+.samples button {
+  border: 1px solid var(--rule); background: transparent; color: var(--ink);
+  border-radius: 999px; padding: 5px 12px; font: 500 0.82rem var(--font-body); cursor: pointer;
+}
+.samples button:hover { border-color: var(--accent); color: var(--accent); }
+.result { padding: 28px; display: grid; gap: 22px; align-content: start; min-width: 0; }
+.totals { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.big { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: clamp(1.4rem, 3.5vw, 1.9rem); font-weight: 600; line-height: 1.2; word-break: break-all; }
+.big.si { color: var(--interest); }
+.big.total { color: var(--accent); }
+.bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--rule); }
+.bar span { display: block; transition: width .3s ease; }
+.bar .p { background: var(--accent); }
+.bar .i { background: var(--interest); }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.working {
+  font-family: var(--font-num); font-size: 0.85rem; background: var(--bg);
+  border-radius: 6px; padding: 12px 14px; overflow-x: auto; white-space: pre; line-height: 1.7;
+}
+.table-wrap { overflow-x: auto; max-height: 280px; overflow-y: auto; border: 1px solid var(--rule); border-radius: 6px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { position: sticky; top: 0; background: var(--paper); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); border-bottom: 1px solid var(--rule); }
+td { font-family: var(--font-num); font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--rule); }
+tr:last-child td { border-bottom: 0; }
+footer { color: var(--muted); font-size: 0.82rem; }
+@media (prefers-reduced-motion: reduce) { .bar span { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Simple Interest Calculator</h1>
+    <p>Enter a principal, an annual rate and a time period. Interest is charged only on the original principal, so it grows by the same amount every year.</p>
+    <span class="formula">SI = (P × R × T) / 100 &nbsp;·&nbsp; A = P + SI</span>
+  </header>
+
+  <section class="book" aria-label="Calculator">
+    <form class="inputs" id="calc" novalidate>
+      <div class="field">
+        <label for="principal">Principal (P)</label>
+        <div class="control"><span class="affix">₹</span><input id="principal" type="number" inputmode="decimal" min="0" step="any" value="10000"></div>
+      </div>
+      <div class="field">
+        <label for="rate">Annual rate (R)</label>
+        <div class="control"><input id="rate" type="number" inputmode="decimal" min="0" step="any" value="5"><span class="affix">% p.a.</span></div>
+      </div>
+      <div class="field">
+        <label for="time">Time (T)</label>
+        <div class="control">
+          <input id="time" type="number" inputmode="decimal" min="0" step="any" value="3">
+          <div class="unit" role="group" aria-label="Time unit">
+            <button type="button" id="unit-years" aria-pressed="true">Years</button>
+            <button type="button" id="unit-months" aria-pressed="false">Months</button>
+          </div>
+        </div>
+      </div>
+      <div class="error" id="error" role="alert"></div>
+      <div class="field">
+        <span class="label">Try an example</span>
+        <div class="samples">
+          <button type="button" data-p="10000" data-r="5" data-t="3" data-u="years">FD · ₹10,000</button>
+          <button type="button" data-p="50000" data-r="12" data-t="18" data-u="months">Loan · ₹50,000</button>
+          <button type="button" data-p="250000" data-r="7.5" data-t="5" data-u="years">Deposit · ₹2.5 lakh</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="result" aria-live="polite">
+      <div class="totals">
+        <div><div class="label">Simple interest</div><div class="big si" id="out-si">₹1,500.00</div></div>
+        <div><div class="label">Total amount</div><div class="big total" id="out-total">₹11,500.00</div></div>
+      </div>
+      <div>
+        <div class="bar" aria-hidden="true"><span class="p" id="bar-p"></span><span class="i" id="bar-i"></span></div>
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i>Principal <b id="pct-p"></b></span>
+          <span><i style="background:var(--interest)"></i>Interest <b id="pct-i"></b></span>
+        </div>
+      </div>
+      <div>
+        <div class="label" style="margin-bottom:8px">Working</div>
+        <div class="working" id="working"></div>
+      </div>
+      <div>
+        <div class="label" style="margin-bottom:8px">Year by year</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Year</th><th>Interest</th><th>Total interest</th><th>Balance</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>Amounts use Indian number grouping. Time in months is converted to years by dividing by 12.</footer>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var unit = "years";
+  var fmt = function (n) {
+    return "₹" + n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  var plain = function (n) { return n.toLocaleString("en-IN", { maximumFractionDigits: 4 }); };
+
+  function setUnit(u) {
+    unit = u;
+    $("unit-years").setAttribute("aria-pressed", u === "years");
+    $("unit-months").setAttribute("aria-pressed", u === "months");
+    calc();
+  }
+
+  function simpleInterest(p, r, t) { return (p * r * t) / 100; }
+
+  function calc() {
+    var p = parseFloat($("principal").value);
+    var r = parseFloat($("rate").value);
+    var tRaw = parseFloat($("time").value);
+    var err = "";
+    if (isNaN(p) || isNaN(r) || isNaN(tRaw)) err = "Fill in principal, rate and time with numbers.";
+    else if (p <= 0 || r <= 0 || tRaw <= 0) err = "Principal, rate and time must each be greater than zero.";
+    $("error").textContent = err;
+    if (err) return;
+
+    var t = unit === "months" ? tRaw / 12 : tRaw;
+    var si = simpleInterest(p, r, t);
+    var total = p + si;
+
+    $("out-si").textContent = fmt(si);
+    $("out-total").textContent = fmt(total);
+    var pp = (p / total) * 100, pi = 100 - pp;
+    $("bar-p").style.width = pp + "%";
+    $("bar-i").style.width = pi + "%";
+    $("pct-p").textContent = pp.toFixed(1) + "%";
+    $("pct-i").textContent = pi.toFixed(1) + "%";
+
+    var tLine = unit === "months" ? "T  = " + plain(tRaw) + " months ÷ 12 = " + plain(t) + " years\n" : "";
+    $("working").textContent =
+      tLine +
+      "SI = (" + plain(p) + " × " + plain(r) + " × " + plain(t) + ") / 100 = " + fmt(si) + "\n" +
+      "A  = " + plain(p) + " + " + plain(si) + " = " + fmt(total);
+
+    var perYear = (p * r) / 100;
+    var html = "";
+    var full = Math.floor(t + 1e-9);
+    var years = Math.min(full, 100);
+    for (var y = 1; y <= years; y++) {
+      var acc = perYear * y;
+      html += "<tr><td>" + y + "</td><td>" + fmt(perYear) + "</td><td>" + fmt(acc) + "</td><td>" + fmt(p + acc) + "</td></tr>";
+    }
+    var rem = t - full;
+    if (rem > 1e-9 && full < 100) {
+      html += "<tr><td>" + plain(t) + "</td><td>" + fmt(perYear * rem) + "</td><td>" + fmt(si) + "</td><td>" + fmt(total) + "</td></tr>";
+    }
+    $("rows").innerHTML = html;
+  }
+
+  ["principal", "rate", "time"].forEach(function (id) { $(id).addEventListener("input", calc); });
+  $("unit-years").addEventListener("click", function () { setUnit("years"); });
+  $("unit-months").addEventListener("click", function () { setUnit("months"); });
+  $("calc").addEventListener("submit", function (e) { e.preventDefault(); calc(); });
+  document.querySelectorAll(".samples button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      $("principal").value = b.dataset.p;
+      $("rate").value = b.dataset.r;
+      $("time").value = b.dataset.t;
+      setUnit(b.dataset.u);
+    });
+  });
+  calc();
+})();
+</script>
+</body>
+</html>
