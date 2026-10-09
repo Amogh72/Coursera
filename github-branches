@@ -1,0 +1,5 @@
+$ git branch -a -vv
+  bug-fix-typo        01df0af Fix typo in simple-interest.sh comment
+* main                01df0af [origin/main] Fix typo in simple-interest.sh comment
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/main 01df0af Fix typo in simple-interest.sh comment
